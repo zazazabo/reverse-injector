@@ -2,7 +2,7 @@
 
 namespace nasa
 {
-	injector_ctx::injector_ctx(nasa::mem_ctx* map_into, nasa::mem_ctx* map_from)
+	injector_ctx::injector_ctx(ptm::ptm_ctx* map_into, ptm::ptm_ctx* map_from)
 		: 
 		map_into(map_into),
 		map_from(map_from),
@@ -11,15 +11,14 @@ namespace nasa
 
 	injector_ctx::~injector_ctx()
 	{
-		const auto pml4 = reinterpret_cast<ppml4e>(
-			map_into->set_page(
-				map_into->get_dirbase()));
+		const auto pml4 = 
+			reinterpret_cast<ppml4e>(
+				map_into->set_page(
+					map_into->dirbase));
 
 		// zero inserted pml4e's...
 		for (const auto [real_idx, inserted_idx] : pml4_index_map)
 			pml4[inserted_idx] = pml4e{ NULL };
-
-		while (!SwitchToThread());
 	}
 
 	bool injector_ctx::init() const
@@ -27,12 +26,12 @@ namespace nasa
 		const auto source_pml4 =
 			reinterpret_cast<ppml4e>(
 				map_from->set_page(
-					map_from->get_dirbase()));
+					map_from->dirbase));
 
 		const auto target_pml4 =
 			reinterpret_cast<ppml4e>(
 				map_into->set_page(
-					map_into->get_dirbase()));
+					map_into->dirbase));
 
 		std::vector<std::pair<std::uint8_t, pml4e>> present_pml4es;
 		std::vector<std::uint8_t> empty_pml4es;
@@ -66,23 +65,23 @@ namespace nasa
 		virt_addr_t virt_addr{ reinterpret_cast<void*>(translate) };
 		try
 		{
-			virt_addr.pml4_index = pml4_index_map.at(virt_addr.pml4_index);
+			virt_addr.pml4_index =
+				pml4_index_map.at(virt_addr.pml4_index);
 		}
 		catch (const std::out_of_range& e)
 		{
 			// the pml4e is not in the map so we need to go get it
 			// and put it inside of the map. also put it inside of
 			// map_into's pml4...
-
 			const auto map_into_pml4 =
 				reinterpret_cast<ppml4e>(
 					map_into->set_page(
-						map_into->get_dirbase()));
+						map_into->dirbase));
 
 			const auto map_from_pml4 =
 				reinterpret_cast<ppml4e>(
 					map_from->set_page(
-						map_from->get_dirbase()));
+						map_from->dirbase));
 
 			const auto new_pml4e = 
 				map_from_pml4[virt_addr.pml4_index];
@@ -98,6 +97,7 @@ namespace nasa
 				}
 			}
 		}
+
 		return reinterpret_cast<std::uintptr_t>(virt_addr.value);
 	}
 }
