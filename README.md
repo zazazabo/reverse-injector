@@ -55,8 +55,7 @@ auto get_module_base(vdm::vdm_ctx* v_ctx, nasa::injector_ctx* rinjector,
 			rinjector->translate(reinterpret_cast<std::uintptr_t>(
 				ldr_data->InMemoryOrderModuleList.Flink)));
 
-	const auto list_head = &ldr_data->InMemoryOrderModuleList;
-	while (current_entry != list_head)
+	while (current_entry != &ldr_data->InMemoryOrderModuleList)
 	{
 		const auto current_entry_data =
 			reinterpret_cast<PLDR_DATA_TABLE_ENTRY>(
