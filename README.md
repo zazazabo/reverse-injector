@@ -35,7 +35,7 @@ My suggestion is you call only small functions if you want to call functions.
 
 # Example
 
-Since all of the games memory is mapped into your process you can simply walk the games PEB for loaded modules. Here is an example of how to do that.
+Since all of the processes memory is mapped into your process you can simply walk the processes PEB for loaded modules. Here is an example of how to do that.
 
 ```cpp
 auto get_module_base(vdm::vdm_ctx* v_ctx, nasa::injector_ctx* rinjector, 
