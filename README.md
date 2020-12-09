@@ -62,8 +62,8 @@ auto get_module_base(vdm::vdm_ctx* v_ctx, nasa::injector_ctx* rinjector,
 			reinterpret_cast<PLDR_DATA_TABLE_ENTRY>(
 				reinterpret_cast<std::uintptr_t>(current_entry) - sizeof LIST_ENTRY);
 
-        // shit looks like a stair case LMFAO?
-        // need an elevator for this...
+            // shit looks like a stair case LMFAO?
+            // need an elevator for this...
 		const auto entry_module_name =
 			reinterpret_cast<const wchar_t*>(
 				rinjector->translate(
