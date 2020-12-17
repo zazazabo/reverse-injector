@@ -114,6 +114,16 @@ namespace vdm
 			return peproc;
 		}
 
+		__forceinline auto get_peb(std::uint32_t pid) -> PPEB
+		{
+			static const auto ps_get_peb = 
+				util::get_kmodule_export(
+					"ntoskrnl.exe", "PsGetProcessPeb");
+
+			return this->syscall<PPEB(*)(PEPROCESS)>(
+				ps_get_peb, get_peprocess(pid));
+		}
+
 	private:
 		void locate_syscall(std::uintptr_t begin, std::uintptr_t end) const;
 		bool valid_syscall(void* syscall_addr) const;

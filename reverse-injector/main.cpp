@@ -3,6 +3,50 @@
 #include "injector_ctx/injector_ctx.hpp"
 #include "set_mgr/set_mgr.hpp"
 
+auto get_module_base(vdm::vdm_ctx* v_ctx, nasa::injector_ctx* rinjector,
+	std::uint32_t pid, const wchar_t* module_name) -> std::uintptr_t
+{
+	const auto ppeb =
+		reinterpret_cast<PPEB>(
+			rinjector->translate(
+				reinterpret_cast<std::uintptr_t>(v_ctx->get_peb(pid))));
+
+	const auto ldr_data =
+		reinterpret_cast<PPEB_LDR_DATA>(
+			rinjector->translate(reinterpret_cast<std::uintptr_t>(ppeb->Ldr)));
+
+	auto current_entry =
+		reinterpret_cast<LIST_ENTRY*>(
+			rinjector->translate(reinterpret_cast<std::uintptr_t>(
+				ldr_data->InMemoryOrderModuleList.Flink)));
+
+	while (current_entry != &ldr_data->InMemoryOrderModuleList)
+	{
+		const auto current_entry_data =
+			reinterpret_cast<PLDR_DATA_TABLE_ENTRY>(
+				reinterpret_cast<std::uintptr_t>(current_entry) - sizeof LIST_ENTRY);
+
+		// shit looks like a stair case LMFAO?
+		// need an elevator for this...
+		const auto entry_module_name =
+			reinterpret_cast<const wchar_t*>(
+				rinjector->translate(
+					reinterpret_cast<std::uintptr_t>(
+						reinterpret_cast<PUNICODE_STRING>(
+							reinterpret_cast<std::uintptr_t>(
+								&current_entry_data->FullDllName) + sizeof UNICODE_STRING)->Buffer)));
+
+		if (!_wcsicmp(entry_module_name, module_name))
+			return rinjector->translate(
+				reinterpret_cast<std::uintptr_t>(
+					current_entry_data->DllBase));
+
+		current_entry = reinterpret_cast<LIST_ENTRY*>(
+			rinjector->translate(reinterpret_cast<std::uintptr_t>(current_entry->Flink)));
+	}
+	return {};
+}
+
 int __cdecl main(int argc, char** argv)
 {
 	if (argc < 3 || strcmp(argv[1], "--pid"))
@@ -74,11 +118,11 @@ int __cdecl main(int argc, char** argv)
 	}
 
 	const auto ntdll_base = 
-		reinterpret_cast<std::uintptr_t>(
-			GetModuleHandleA("ntdll.dll"));
+		get_module_base(&vdm, &injector,
+			std::atoi(argv[2]), L"ntdll.dll");
 
-	const auto ntdll_base_injected = injector.translate(ntdll_base);
-	std::printf("[+] ntdll base -> 0x%p\n", ntdll_base_injected);
+	std::printf("[+] ntdll reverse injected base -> 0x%p\n", ntdll_base);
+	std::printf("[+] ntdll reverse injected MZ -> 0x%p\n", *(short*)ntdll_base);
 	std::printf("[+] press any key to close...\n");
 	std::getchar();
 }
